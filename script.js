@@ -149,20 +149,44 @@ $$("input, textarea", form).forEach(input =>
   input.addEventListener("input", () => validateField(input))
 );
 
-form.addEventListener("submit", (e) => {
+// Get a free access key at https://web3forms.com (enter yashwi0563@gmail.com) and paste it here.
+const WEB3FORMS_KEY = "e56a113e-6940-4ca2-815e-e0b7905432f3";
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const valid = $$("input, textarea", form).map(validateField).every(Boolean);
   if (!valid) return;
 
-  // Opens the visitor's email app with the message pre-filled (no backend needed).
-  const name = form.elements.name.value.trim();
-  const email = form.elements.email.value.trim();
-  const message = form.elements.message.value.trim();
-  const subject = encodeURIComponent("Portfolio enquiry from " + name);
-  const body = encodeURIComponent(message + "\n\n— " + name + " (" + email + ")");
-  window.location.href = "mailto:yashwi0563@gmail.com?subject=" + subject + "&body=" + body;
+  const submitBtn = form.querySelector("button[type='submit']");
+  submitBtn.disabled = true;
+  statusEl.style.color = "";
+  statusEl.textContent = "Sending…";
 
-  statusEl.textContent = "Opening your email app to send the message…";
-  form.reset();
+  try {
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: "Portfolio enquiry from " + form.elements.name.value.trim(),
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim(),
+        message: form.elements.message.value.trim()
+      })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      statusEl.textContent = "Thanks! Your message has been sent.";
+      form.reset();
+    } else {
+      throw new Error(data.message || "Failed");
+    }
+  } catch (err) {
+    statusEl.style.color = "#ef4444";
+    statusEl.textContent = "Sorry, something went wrong. Please email me at yashwi0563@gmail.com.";
+  } finally {
+    submitBtn.disabled = false;
+  }
   setTimeout(() => (statusEl.textContent = ""), 5000);
 });
